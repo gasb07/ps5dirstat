@@ -39,7 +39,7 @@ pages embedded with `xxd -i`, own HTTP server.
 The tree lives in memory as one array of fixed-size nodes plus one string pool for names.
 Each node holds: parent index, first child index, next sibling index, name offset in the pool,
 type (file, directory, error), total size in bytes, recursive file count and recursive directory
-count. About 32 bytes per node plus the name, so 1 million entries take about 60 to 80 MB.
+count. 40 bytes per node plus the name, so 1 million entries take about 60 to 80 MB.
 
 The snapshot is the header, the node array and the string pool written as is. Loading is one
 `read`, with no parsing.
@@ -66,10 +66,10 @@ Directory totals (size, file count, directory count) are summed when the DFS lea
 |---|---|
 | `GET /` | `index.html` |
 | `GET /legacy` | `legacy.html` |
-| `GET /api/status` | `state` (`idle`, `scanning`, `loading`), `gen`, snapshot date, totals (bytes, files, directories, errors), progress while scanning (entries read, current path) |
+| `GET /api/status` | `state` (`idle`, `scanning`), `gen`, `has_tree`, snapshot date, totals (bytes, files, directories, errors), progress while scanning (entries read, current path) |
 | `POST /api/scan` | Starts a scan. 409 if one is running |
 | `POST /api/scan/cancel` | Cancels the running scan |
-| `GET /api/node?id=N&gen=G&limit=200` | The node (name, full path, size, files, directories) and its children sorted by size, largest first. Children past `limit` are merged into one "N others" item with their summed size |
+| `GET /api/node?id=N&gen=G&limit=200` | The node (name, full path, ancestors with ids and names, size, files, directories) and its children sorted by size, largest first. Children past `limit` are merged into one "N others" item with their summed size |
 | `GET /api/map?id=N&gen=G&depth=3` | Subtree for the treemap: up to 3 levels and 5000 nodes. A child under 0.1% of its parent's size is merged into "others" |
 
 - **D9.** A node `id` is its index in the array. Each new tree increments `gen`. A request with an
@@ -77,7 +77,8 @@ Directory totals (size, file count, directory count) are summed when the DFS lea
 - **D11.** The panel polls `/api/status` every second only while a scan runs.
 - **D12.** At boot the payload loads `last.bin` if it exists. Without it the panel shows
   "No scan yet" and waits for the user to start one. The payload never starts a scan by itself.
-- The Media tab shortcut opens `/` or `/legacy` by firmware version, with the same rule as ps4mount.
+- The Media tab shortcut opens `/`. A browser without CSS grid is sent to `/legacy`, as ps4mount does with its own feature check.
+- `GET /app.js` and `GET /treemap.js` serve the scripts both pages share.
 
 ## Panel
 
@@ -92,11 +93,14 @@ a PC. Dark colors from the ps4mount panel.
 3. **Treemap.** Squarified layout drawn on a 2D canvas, 3 levels from the selected directory. Each
    first-level directory gets one color, its children shades of it. Click selects the item in the
    tree. Double click (X on the controller) enters a directory. A breadcrumb goes back up. On a PC,
-   hovering shows path and size.
+   hovering shows path and size. The info line under the map shows the selected item's path and
+  size, with a **Show in map** button for folders (the controller path into a folder).
 - **D13.** Each tree row is focusable, so the PS5 controller moves through it. On the PS5 the
   treemap is used with the browser cursor and the breadcrumb.
-- **D14.** Both pages have the same structure. `legacy.html` is ES5 with `XMLHttpRequest` only, no
-  CSS variables, no grid, no `<dialog>`. The squarified function is the same code in both pages.
+- **D14.** Both pages have the same structure and load the same ES5 scripts (`app.js` for the tree,
+  status and map interaction, `treemap.js` for layout and drawing), using `XMLHttpRequest` only. The
+  pages differ in CSS: `index.html` uses grid, CSS variables and a draggable divider; `legacy.html`
+  uses none of them and no `<dialog>`.
 
 ## Errors
 
@@ -120,6 +124,8 @@ Host tests run by `test/run.sh`, as in ps4mount:
 3. `http_test.c`: routes, 409 on old `gen` (D9), "N others" merge, `map` limits.
 4. Treemap: Node test of the squarified function: no overlapping cells, cell area proportional to
    size.
+5. `test/devserver.c`: the panel on the host over any local folder, to try the pages in a desktop
+   browser before the console.
 
 On the console: a full scan while a game runs, watching FPS on the overlay, and both pages opened
 from the Media tab.
