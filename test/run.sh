@@ -20,3 +20,8 @@ echo "== buffers and JSON strings"
 # shellcheck disable=SC2086
 $CC $FLAGS -o "$B/buf_test" test/buf_test.c src/buf.c
 "$B/buf_test"
+
+echo "== tree"
+# shellcheck disable=SC2086
+$CC $FLAGS -o "$B/tree_test" test/tree_test.c src/tree.c src/buf.c
+"$B/tree_test"
