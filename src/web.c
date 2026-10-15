@@ -9,6 +9,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/time.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "buf.h"
@@ -36,9 +37,10 @@ int web_listen(void) {
     return s;
 }
 
-static void send_all(int fd, const void *p, size_t n) {
+/* Writes until done or until deadline (each write waits at most 1 s, SO_SNDTIMEO). */
+static void send_all(int fd, const void *p, size_t n, time_t deadline) {
     const char *c = p;
-    while (n) {
+    while (n && time(NULL) < deadline) {
         ssize_t w = write(fd, c, n);
         if (w <= 0)
             return;
@@ -63,8 +65,9 @@ static void reply(int fd, int code, const char *type, const void *body, size_t l
                      "HTTP/1.1 %s\r\nContent-Type: %s\r\nContent-Length: %zu\r\nCache-Control: no-store\r\n"
                      "Connection: close\r\n\r\n",
                      status_text(code), type, len);
-    send_all(fd, head, (size_t)n);
-    send_all(fd, body, len);
+    time_t deadline = time(NULL) + WEB_SEND_TIMEOUT;
+    send_all(fd, head, (size_t)n, deadline);
+    send_all(fd, body, len, deadline);
 }
 
 static void reply_buf(int fd, int code, buf_t *b) {
@@ -109,8 +112,10 @@ void web_serve(int listen_fd) {
 }
 
 void web_handle(int fd) {
-    struct timeval tv = {5, 0};
+    struct timeval tv = {5, 0}, out = {1, 0};
     setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+    /* a client that stops reading (a suspended browser) must not hold the only server thread */
+    setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &out, sizeof(out));
     char req[4096], method[8] = "", path[512] = "", route[512];
     ssize_t n = read(fd, req, sizeof(req) - 1);
     if (n <= 0) {

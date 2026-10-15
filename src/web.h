@@ -4,6 +4,9 @@
 #pragma once
 
 #define WEB_PORT 8771
+#ifndef WEB_SEND_TIMEOUT
+#define WEB_SEND_TIMEOUT 5 /* seconds a whole reply may take: a client that stops reading is dropped */
+#endif
 
 int web_listen(void);
 /* Serves one connection on the listening socket. */
