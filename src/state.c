@@ -7,6 +7,7 @@
 #include <sched.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 #include "scan.h"
 #include "snap.h"
@@ -21,7 +22,7 @@ static int g_have;         /* g_tree holds a tree */
 static int g_scanning;
 static int g_joinable;     /* main thread only */
 static volatile int g_cancel;
-static uint32_t g_gen = 1; /* changes with every new tree */
+static uint32_t g_gen; /* changes with every new tree; starts from the clock, see ds_init */
 static uint64_t g_entries;
 static char g_path[512], g_msg[200];
 static pthread_t g_th;
@@ -45,6 +46,8 @@ static void size_text(uint64_t n, char *out, size_t cap) {
 
 void ds_init(const ds_config_t *cfg) {
     g_cfg = *cfg;
+    /* not 1: a tab left open across a payload restart must get 409, never another tree's ids */
+    g_gen = (uint32_t)time(NULL);
     tree_t t;
     if (cfg->snap_path && !snap_read(cfg->snap_path, &t)) {
         g_tree = t;
