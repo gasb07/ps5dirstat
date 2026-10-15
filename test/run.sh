@@ -25,3 +25,8 @@ echo "== tree"
 # shellcheck disable=SC2086
 $CC $FLAGS -o "$B/tree_test" test/tree_test.c src/tree.c src/buf.c
 "$B/tree_test"
+
+echo "== scan"
+# shellcheck disable=SC2086
+$CC $FLAGS -o "$B/scan_test" test/scan_test.c src/scan.c src/mounts.c src/tree.c src/buf.c
+"$B/scan_test"
