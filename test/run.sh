@@ -35,3 +35,6 @@ echo "== snapshot"
 # shellcheck disable=SC2086
 $CC $FLAGS -o "$B/snap_test" test/snap_test.c src/snap.c src/tree.c src/buf.c
 "$B/snap_test"
+
+echo "== treemap"
+node --test test/web/*.test.js
