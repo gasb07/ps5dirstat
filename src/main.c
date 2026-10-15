@@ -198,7 +198,7 @@ int main(void) {
     cfg.root = "/";
     cfg.snap_path = STATE_DIR "/last.bin";
     cfg.pause_us = 1000;
-    cfg.max_bytes = TREE_MAX_BYTES;
+    cfg.max_bytes = TREE_MAX_BYTES / 2; /* the previous tree stays loaded during a scan: two trees fit the cap */
     cfg.skip_list = mounts_skip_list;
     cfg.skip_free = mounts_free;
     cfg.notify = scan_note;

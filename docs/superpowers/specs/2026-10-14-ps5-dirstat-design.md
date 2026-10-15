@@ -104,7 +104,9 @@ a PC. Dark colors from the ps4mount panel.
 
 ## Errors
 
-- **D15.** The node array and string pool grow with `realloc` up to 256 MB in total. Past that, or on
+- **D15.** The node array and string pool of one tree grow with `realloc` up to 128 MB in total, so the
+  previous tree kept during a scan (D7) and the new one stay within 256 MB together (about 2 million
+  entries per tree). Past that, or on
   allocation failure, the scan stops with "not enough memory: N entries read", the partial tree is
   dropped and the previous tree stays.
 - **D16.** `last.bin` is accepted only if magic, version, declared sizes against file size and all
