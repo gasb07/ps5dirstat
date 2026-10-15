@@ -38,3 +38,20 @@ $CC $FLAGS -o "$B/snap_test" test/snap_test.c src/snap.c src/tree.c src/buf.c
 
 echo "== treemap"
 node --test test/web/*.test.js
+
+echo "== web panel server"
+{
+    (cd web && xxd -i -n index_html index.html)
+    (cd web && xxd -i -n legacy_html legacy.html)
+    (cd web && xxd -i -n app_js app.js)
+    (cd web && xxd -i -n treemap_js treemap.js)
+} > "$B/page_data.h"
+SRV="src/state.c src/web.c src/scan.c src/mounts.c src/snap.c src/tree.c src/buf.c"
+# shellcheck disable=SC2086
+$CC $FLAGS -o "$B/http_test" test/http_test.c $SRV -lpthread
+"$B/http_test"
+# shellcheck disable=SC2086
+$CC $FLAGS -o "$B/devserver" test/devserver.c $SRV -lpthread
+
+echo "== policy"
+bash test/policy.sh
